@@ -1,4 +1,5 @@
 ﻿using apbd_cw7_s31035.Exceptions;
+using apbd_cw7_s31035.Models;
 using apbd_cw7_s31035.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,5 +24,14 @@ public class ClientsController(IDbService dbService) : ControllerBase
         {
             return NotFound(ex.Message);
         }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> PostClient(
+        [FromBody] ClientCreateDTO client
+    )
+    {
+        var clientId = await dbService.CreateClientAsync(client);
+        return Ok(clientId);
     }
 }

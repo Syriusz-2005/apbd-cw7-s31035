@@ -8,6 +8,7 @@ public interface IDbService
 {
     public Task<IEnumerable<TripGetDTO>> GetAllTripsAsync();
     public Task<IEnumerable<ClientTripGetDTO>> GetClientTripsAsync(int clientId);
+    public Task<int> CreateClientAsync(ClientCreateDTO client);
 }
 
 public class DbService(IConfiguration config) : IDbService
@@ -135,5 +136,23 @@ public class DbService(IConfiguration config) : IDbService
                     TripDetails = trip,
                 };
             });
+    }
+
+    public async Task<int> CreateClientAsync(ClientCreateDTO client)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        var query = """
+                    INSERT INTO Client (FirstName, LastName, Email, Telephone, Pesel) 
+                    VALUES (@FirstName, @LastName, @Email, @Telephone, @Pesel); SELECT scope_identity() 
+                    """;
+        await using var command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@FirstName", client.FirstName);
+        command.Parameters.AddWithValue("@LastName", client.LastName);
+        command.Parameters.AddWithValue("@Email", client.Email);
+        command.Parameters.AddWithValue("@Telephone", client.Telephone);
+        command.Parameters.AddWithValue("@Pesel", client.Pesel);
+        var clientId = Convert.ToInt32(await command.ExecuteScalarAsync());
+        return clientId;
     }
 }
