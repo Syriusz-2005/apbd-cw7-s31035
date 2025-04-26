@@ -34,4 +34,40 @@ public class ClientsController(IDbService dbService) : ControllerBase
         var clientId = await dbService.CreateClientAsync(client);
         return Ok(clientId);
     }
+
+    [HttpPut]
+    [Route("{clientId}/trips/{tripId}")]
+    public async Task<IActionResult> RegisterClientOnTrip(
+        [FromRoute] int clientId,
+        [FromRoute] int tripId
+    )
+    {
+        try
+        {
+            await dbService.RegisterClientOnTripAsync(clientId, tripId);
+            return Ok("Registered Successfully!");
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [HttpDelete]
+    [Route("{clientId}/trips/{tripId}")]
+    public async Task<IActionResult> DeleteClientTrip(
+        [FromRoute] int clientId,
+        [FromRoute] int tripId
+    )
+    {
+        try
+        {
+            await dbService.DeleteClientTrip(clientId, tripId);
+            return Ok("Deleted Successfully");
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
 }

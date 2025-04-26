@@ -9,6 +9,8 @@ public interface IDbService
     public Task<IEnumerable<TripGetDTO>> GetAllTripsAsync();
     public Task<IEnumerable<ClientTripGetDTO>> GetClientTripsAsync(int clientId);
     public Task<int> CreateClientAsync(ClientCreateDTO client);
+    public Task RegisterClientOnTripAsync(int clientId, int tripId);
+    public Task DeleteClientTrip(int clientId, int tripId);
 }
 
 public class DbService(IConfiguration config) : IDbService
@@ -154,5 +156,82 @@ public class DbService(IConfiguration config) : IDbService
         command.Parameters.AddWithValue("@Pesel", client.Pesel);
         var clientId = Convert.ToInt32(await command.ExecuteScalarAsync());
         return clientId;
+    }
+
+    public async Task RegisterClientOnTripAsync(int clientId, int tripId)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        var clientPresenceQuery = """
+                                  SELECT 1
+                                  FROM Client
+                                  WHERE Client.IdClient = @clientId
+                                  """;
+        await using var command = new SqlCommand(clientPresenceQuery, connection);
+        command.Parameters.AddWithValue("@clientId", clientId);
+        await using (var reader = await command.ExecuteReaderAsync()) 
+        {
+            if (!reader.HasRows)
+            {
+                throw new NotFoundException("Client not found!");
+            }
+        }
+        
+        var tripPresenceQuery = """
+                                  SELECT 1
+                                  FROM Trip
+                                  WHERE Trip.IdTrip = @tripId
+                                  """;
+        await using var command2 = new SqlCommand(tripPresenceQuery, connection);
+        command2.Parameters.AddWithValue("@tripId", tripId);
+        await using (var reader = await command2.ExecuteReaderAsync()) 
+        {
+            if (!reader.HasRows)
+            {
+                throw new NotFoundException("Trip not found!");
+            }
+        }
+
+        var insertQuery = """
+                          INSERT INTO Client_Trip (IdClient, IdTrip, RegisteredAt, PaymentDate)
+                          VALUES (@IdClient, @IdTrip, @RegisteredAt, null)
+                          """;
+        await using var insertCommand = new SqlCommand(insertQuery, connection);
+        insertCommand.Parameters.AddWithValue("@IdClient", clientId);
+        insertCommand.Parameters.AddWithValue("@IdTrip", tripId);
+        var now = DateTime.Now;
+        var timestamp = now.Day + now.Month * 100 + now.Year * 10_000;
+        insertCommand.Parameters.AddWithValue("@RegisteredAt", timestamp);
+        await insertCommand.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteClientTrip(int clientId, int tripId)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        var clientTripPresenceQuery = """
+                                  SELECT 1
+                                  FROM Client_Trip CT
+                                  WHERE CT.IdClient = @clientId and CT.IdTrip = @tripId
+                                  """;
+        await using var command = new SqlCommand(clientTripPresenceQuery, connection);
+        command.Parameters.AddWithValue("@clientId", clientId);
+        command.Parameters.AddWithValue("@tripId", tripId);
+        await using (var reader = await command.ExecuteReaderAsync()) 
+        {
+            if (!reader.HasRows)
+            {
+                throw new NotFoundException("Client trip not found!");
+            }
+        }
+
+        var deleteQuery = """
+                          DELETE FROM Client_Trip
+                          WHERE IdClient = @clientId and IdTrip = @tripId
+                          """;
+        await using var deleteCommand = new SqlCommand(deleteQuery, connection);
+        deleteCommand.Parameters.AddWithValue("@clientId", clientId);
+        deleteCommand.Parameters.AddWithValue("@tripId", tripId);
+        await deleteCommand.ExecuteNonQueryAsync();
     }
 }
