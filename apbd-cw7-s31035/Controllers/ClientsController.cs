@@ -24,6 +24,11 @@ public class ClientsController(IDbService dbService) : ControllerBase
         {
             return NotFound(ex.Message);
         }
+        catch (Exception err) // Normally this would be handled in the middleware
+        {
+            Console.Error.WriteLine(err);
+            return StatusCode(500, "Unexpected server error");
+        }
     }
 
     [HttpPost]
@@ -31,8 +36,16 @@ public class ClientsController(IDbService dbService) : ControllerBase
         [FromBody] ClientCreateDTO client
     )
     {
-        var clientId = await dbService.CreateClientAsync(client);
-        return Ok(clientId);
+        try
+        {
+            var clientId = await dbService.CreateClientAsync(client);
+            return Ok(clientId);
+        } 
+        catch (Exception err) // Normally this would be handled in the middleware
+        {
+            Console.Error.WriteLine(err);
+            return StatusCode(500, "Unexpected server error");
+        }
     }
 
     [HttpPut]
@@ -50,6 +63,11 @@ public class ClientsController(IDbService dbService) : ControllerBase
         catch (NotFoundException ex)
         {
             return NotFound(ex.Message);
+        } 
+        catch (Exception err) // Normally this would be handled in the middleware
+        {
+            Console.Error.WriteLine(err);
+            return StatusCode(500, "Unexpected server error");
         }
     }
 
@@ -68,6 +86,11 @@ public class ClientsController(IDbService dbService) : ControllerBase
         catch (NotFoundException ex)
         {
             return NotFound(ex.Message);
+        } 
+        catch (Exception err) // Normally this would be handled in the middleware
+        {
+            Console.Error.WriteLine(err);
+            return StatusCode(500, "Unexpected server error");
         }
     }
 }

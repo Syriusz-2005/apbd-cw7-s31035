@@ -10,7 +10,15 @@ public class TripsController(IDbService dbService) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllTrips()
     {
-        var trips = await dbService.GetAllTripsAsync();
-        return Ok(trips);
+        try
+        {
+            var trips = await dbService.GetAllTripsAsync();
+            return Ok(trips);
+        }
+        catch (Exception err) // Normally this would be handled in the middleware
+        {
+            Console.Error.WriteLine(err);
+            return StatusCode(500, "Unexpected server error");
+        }
     }
 }
